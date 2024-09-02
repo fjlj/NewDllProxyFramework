@@ -152,7 +152,7 @@ BOOL _CreateDirectoryW(
 }
 
 void mbht(hwnd) {
-	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", L"WinMM Hijack!", MB_ICONHAND);
+	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", L"CryptBase Hijack!", MB_ICONHAND);
 }
 
 INT  _ShellAboutW(HWND    hWnd,
@@ -191,7 +191,7 @@ void init() {
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "CreateDirectoryW", (uintptr_t)&_CreateDirectoryW, &hookedFuncs);
 	}*/
-	if (!wcscmp(getExeName(), L"calc1.exe")) {
+	if (!wcscmp(getExeName(), L"notepad.exe")) {
 		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW, &hookedFuncs);

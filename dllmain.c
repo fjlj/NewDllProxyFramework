@@ -2,7 +2,7 @@
 
 #pragma once
 #include "version.h"
-#define winmm_prox
+#define cryptbase_prox
 
 #ifdef winmm_prox
 
