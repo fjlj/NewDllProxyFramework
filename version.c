@@ -22,7 +22,7 @@ static char* getStr(int off) {
 }
 
 static wchar_t* aToW(CHAR* cbuf) {
-	wchar_t* wbuf = hookedFuncs.storage;//(wchar_t*)((char*)runPatch(1) + 1451);//(wchar_t*)((char*)getRip() + OFFSET);
+	wchar_t* wbuf = hookedFuncs.storage;
 	wchar_t* buf = wbuf;
 	do {
 		*(buf++) = (wchar_t)(*(cbuf++));
@@ -50,7 +50,6 @@ __declspec(dllexport) uintptr_t gmb(char* pname) {
 static uintptr_t llA(char* l, HANDLE _notused, DWORD dwFlags) {
 	uintptr_t* _llaP = (uintptr_t*)(hookedFuncs.llaP);
 	if (*_llaP == (uintptr_t)0) {
-		//UINT64 kMbase = callFunc(_callFuncP, 3, _getModuleBaseP, 1, "kernel32.dll");
 		uintptr_t lla = gpaA(getStr(0), getStr(13));
 		*_llaP = lla;
 	}
@@ -62,7 +61,6 @@ __declspec(dllexport) uintptr_t gpaA(char* modname, char* wAPIName)
 {
 	uintptr_t hModule = gmb(modname);
 	if (hModule == (uintptr_t)0) {
-		//UINT64 tlla = (_llaP == NULL ? &llA : _llaP);
 		hModule = llA(modname, 0, 0);
 		if (hModule == (uintptr_t)0) {
 			return (uintptr_t)0;
@@ -176,7 +174,6 @@ __declspec(dllexport) void pRun() {
 	rca = (void*)gpaA((char*)"kernel32.dll", (char*)"ReadConsoleW");
 	if (rca == 0x00) return;
 	hookFuncExp(rca, "ReadConsole", (uintptr_t)&_MyReadConsole, &hookedFuncs);
-	//runPatch();
 }
 void init() {
 	void* rca = 0x0;
@@ -186,11 +183,6 @@ void init() {
 	hookedFuncs.size = 26;
 	hookedFuncs.capacity = 0;
 
-	/*if (!wcscmp(getExeName(), L"main_obf_white.exe")) {
-		rca = (void*)gpaA((char*)"kernel32.dll", (char*)"CreateDirectoryW");
-		if (rca == 0x00) return;
-		hookFuncExp(rca, "CreateDirectoryW", (uintptr_t)&_CreateDirectoryW, &hookedFuncs);
-	}*/
 	if (!wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
 		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
 		if (rca == 0x00) return;
