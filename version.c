@@ -170,20 +170,31 @@ INT  _ShellAboutW(HWND    hWnd,
 }
 
 __declspec(dllexport) void pRun() {
+	//this is where most hooks should be set.
 	void* rca = 0x0;
 	rca = (void*)gpaA((char*)"kernel32.dll", (char*)"ReadConsoleW");
 	if (rca == 0x00) return;
 	hookFuncExp(rca, "ReadConsole", (uintptr_t)&_MyReadConsole, &hookedFuncs);
 }
 void init() {
-	void* rca = 0x0;
+	// Actual init code
 	hookedFuncs.funcs = (FuncPointer*)allocMem(26 * sizeof(FuncPointer));
 	hookedFuncs.storage = (wchar_t*)allocMem(MAX_PATH*2);
 	hookedFuncs.llaP = allocMem(sizeof(void*) * 2);
 	hookedFuncs.size = 26;
 	hookedFuncs.capacity = 0;
+	//end init
 
+	//not recommended (should use pRun function as to not hold loader lock)
+	//this is here only for demonstration and to show that in some cases 
+	//when absolutely needed.. it may be done carefully. 
 	if (!wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
+		void* rca = 0x0;
+
+		//if the library we are attempting to get the procedure from, 
+		//has not already been loaded gpaA will attempt to load it...
+		//resulting in some bad things happening because,
+		//we still hold the loader lock at this point...
 		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW, &hookedFuncs);
