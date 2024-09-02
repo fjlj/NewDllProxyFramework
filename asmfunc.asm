@@ -1,3 +1,9 @@
+MEMSEG segment READ WRITE EXECUTE 'STACK'
+	msize dq 2000h
+	mcapacity dq 0h
+	array1  byte  8192 DUP(90h)
+MEMSEG ends
+
 .code	
 	getPeb proc
 		mov rax, gs:[60h]
@@ -56,25 +62,21 @@
 		ret
 	getExeName endp
 
-;	makeOffset proc
-;		pop rax
-;		push rax
-;		add rax,rcx
-;		ret
-;	makeOffset endp
+	allocMem proc
+		mov rax,rcx
+		add rax,mcapacity
+		cmp rax,msize
+		jg oom
+		mov rcx,OFFSET array1
+		add rcx,mcapacity
+		mov mcapacity,rax
+		mov rax,rcx
+		jmp fin
+		oom:
+		xor rax,rax
+		fin:
+		ret
+	allocMem endp
 
-;	runPatch proc
-;		cmp rcx,1
-;		jne run
-;		call retadr
-;		retadr:
-;		pop rax
-;		ret
-;		run:
-;		array1  byte  1431 DUP(90h)
-;		ret
-;		array2  byte  523 DUP(90h)
-;		ret
-;	runPatch endp
 
 end
