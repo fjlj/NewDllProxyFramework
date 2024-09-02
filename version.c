@@ -191,7 +191,7 @@ void init() {
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "CreateDirectoryW", (uintptr_t)&_CreateDirectoryW, &hookedFuncs);
 	}*/
-	if (!wcscmp(getExeName(), L"notepad.exe")) {
+	if (!wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
 		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW, &hookedFuncs);
