@@ -10,6 +10,7 @@ Just a quick and easy way to make more than one proxy dll..
 # this contains some test code for...
  - notepad.exe (pre win11, new is untested)
  - calc.exe (pre win11)
+ - x86 mspaint.exe (classic)
 
 ---
 # quickstart
