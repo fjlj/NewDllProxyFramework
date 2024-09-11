@@ -24,6 +24,7 @@
     <ProjectGuid>{8a93c34b-b5d1-4be6-89a8-b464a7638a3e}</ProjectGuid>
     <RootNamespace>NewVerProxy</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>NewDllProxyFramework</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
