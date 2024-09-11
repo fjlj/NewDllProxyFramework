@@ -12,25 +12,39 @@ typedef struct OrgFuncs {
 	void* llaP;
 	size_t size;
 	size_t capacity;
+	size_t storage_capacity;
 } OrgFuncs;
 
 OrgFuncs hookedFuncs;
+
 
 static char* getStr(int off) {
 	unsigned char strs[] = { 00,107, 101, 114, 110, 101, 108, 51, 50, 46, 100, 108, 108,00,76, 111, 97, 100, 76, 105, 98, 114, 97, 114, 121, 69, 120, 65, 00 };
 	return (char*)(strs + (off + 1));
 }
 
+//this function uses an area of space for string conversion
+//it will return the converted string pointer
+//it will do this in an arena type method
+//soo dont consider using these pointers for more than immediate use.
 static wchar_t* aToW(CHAR* cbuf) {
-	wchar_t* wbuf = hookedFuncs.storage;
+	if (hookedFuncs.storage_capacity >= (MAX_PATH * (STORAGE_COUNT - 1)))
+		hookedFuncs.storage_capacity = 0;
+
+	wchar_t* wbuf = hookedFuncs.storage + hookedFuncs.storage_capacity;
 	wchar_t* buf = wbuf;
 	do {
 		*(buf++) = (wchar_t)(*(cbuf++));
 	} while (*cbuf != '\x00');
+	
+	//adding an extra 00 at the end for safety ;)
+	*(buf++) = '\x00';
+	hookedFuncs.storage_capacity += (buf-wbuf);
+	
 	return wbuf;
 }
 
-__declspec(dllexport) uintptr_t gmb(char* pname) {
+uintptr_t gmb(char* pname) {
 	PEB_LDR_DATA* LDRData = getLdrData();
 	MLIST_ENTRY* MemOrderModList = LDRData->InMemoryOrderModuleList.Flink;
 
@@ -47,6 +61,10 @@ __declspec(dllexport) uintptr_t gmb(char* pname) {
 	return llA(pname, 0, 0);
 
 }
+__declspec(dllexport) uintptr_t pebLoadLib(char* l, HANDLE _notused, DWORD dwFlags) {
+	return llA(l, _notused, dwFlags);
+}
+
 static uintptr_t llA(char* l, HANDLE _notused, DWORD dwFlags) {
 	uintptr_t* _llaP = (uintptr_t*)(hookedFuncs.llaP);
 	if (*_llaP == (uintptr_t)0) {
@@ -57,7 +75,7 @@ static uintptr_t llA(char* l, HANDLE _notused, DWORD dwFlags) {
 	return clla(l, 0, 0);
 }
 
-__declspec(dllexport) uintptr_t gpaA(char* modname, char* wAPIName)
+uintptr_t gpaA(char* modname, char* wAPIName)
 {
 	uintptr_t hModule = gmb(modname);
 	if (hModule == (uintptr_t)0) {
@@ -71,7 +89,11 @@ __declspec(dllexport) uintptr_t gpaA(char* modname, char* wAPIName)
 	IMAGE_DOS_HEADER* idhDosHeader = (IMAGE_DOS_HEADER*)(lpBase);
 	if (idhDosHeader->e_magic == 0x5A4D)
 	{
+#ifdef _WIN64
 		IMAGE_NT_HEADERS64* inhNtHeader = (IMAGE_NT_HEADERS64*)(lpBase + idhDosHeader->e_lfanew);
+#else
+		IMAGE_NT_HEADERS* inhNtHeader = (IMAGE_NT_HEADERS*)(lpBase + idhDosHeader->e_lfanew);
+#endif
 		if (inhNtHeader->Signature == 0x4550)
 		{
 			IMAGE_EXPORT_DIRECTORY* iedExportDirectory = (IMAGE_EXPORT_DIRECTORY*)(lpBase + inhNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress);
@@ -89,98 +111,105 @@ __declspec(dllexport) uintptr_t gpaA(char* modname, char* wAPIName)
 	return 0;
 }
 
-BOOL WINAPI _MyReadConsole(
-	_In_     HANDLE  hConsoleInput,
-	_Out_    LPVOID  lpBuffer,
-	_In_     DWORD   nNumberOfCharsToRead,
-	_Out_    LPDWORD lpNumberOfCharsRead,
-	_In_opt_ LPVOID  pInputControl
-) {
-	BOOL(*mrc)(HANDLE, LPVOID, DWORD, LPDWORD, LPVOID) = (BOOL(*_cdecl)(HANDLE, LPVOID, DWORD, LPDWORD, LPVOID)) * ((uintptr_t*)hookedFuncs.funcs[0].func);
-	mrc(hConsoleInput, lpBuffer, nNumberOfCharsToRead, lpNumberOfCharsRead, pInputControl);
-	DWORD tlen = (DWORD)(lstrlenW((wchar_t*)lpBuffer) - 2);
-	((wchar_t*)lpBuffer)[tlen] = 0x00;
-	DWORD wrote = 0;
-	WriteConsoleW(GetStdHandle(((DWORD)-11)), L"'", 1, &wrote, 0);
-	WriteConsoleW(GetStdHandle(((DWORD)-11)), ((wchar_t*)lpBuffer), tlen, &wrote, 0);
-	WriteConsoleW(GetStdHandle(((DWORD)-11)), L"' is a fantastic code! I say....\n", 33, &wrote, 0);
-	wchar_t* correctP = (wchar_t*)L"yougottapatchit\r\n";
-	tlen = (DWORD)lstrlenW(correctP);
-	memmove((wchar_t*)lpBuffer, correctP, tlen * sizeof(wchar_t));
-	*lpNumberOfCharsRead = tlen;
-	return 1;
-}
+//TODO: add a function to select a hooked function by name
 
+static size_t hookFuncExp(uintptr_t dst, const char* name, uintptr_t funcAddr) {
+	OrgFuncs* OgFs = &hookedFuncs;
 
-
-static size_t hookFuncExp(void* dst, const char* name, uintptr_t funcAddr, OrgFuncs* OgFs) {
 	DWORD lpflOldProtect;
-	VirtualProtect(dst, 0x12, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
-	memcpy(&(OgFs->funcs[OgFs->capacity].name), name, strlen(name));
+	VirtualProtect((void*)dst, 0x12, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
+#ifdef _WIN64
 	if (((char*)dst)[0] == 0xff) {
-		OgFs->funcs[OgFs->capacity].func = (void*)(((uintptr_t*)((char*)dst + 6 + (DWORD) * ((DWORD*)((char*)dst + 2)))));
+		OgFs->funcs[OgFs->capacity].func = (void*)(((uintptr_t*)((char*)dst + 6 + (uintptr_t) * ((uintptr_t*)((char*)dst + 2)))));
 		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
 		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
 		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
 	}
 	else {
-		memcpy(OgFs->funcs[OgFs->capacity].oldbytes, dst, 12);
+		memcpy(OgFs->funcs[OgFs->capacity].oldbytes, (void*)dst, 12);
 		OgFs->funcs[OgFs->capacity].func = (void*)dst;
 		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
 		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
 		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
 	}
+#else
+	if (*((BYTE*)((char*)dst + 0)) == 0xff) {
+		OgFs->funcs[OgFs->capacity].func = (void*)*((DWORD*)*((DWORD*)((char*)dst + 2)));
+		*((BYTE*)((char*)dst + 0)) = (BYTE)0xb8;
+		*((uintptr_t*)((char*)dst + 1)) = funcAddr;
+		*((WORD*)((char*)dst + 5)) = (WORD)0xE0FF;
+	}
+	else {
+		memcpy(OgFs->funcs[OgFs->capacity].oldbytes, (void*)dst, 12);
+		OgFs->funcs[OgFs->capacity].func = (void*)dst;
+		*((BYTE*)((char*)dst + 0)) = (BYTE)0xb8;
+		*((uintptr_t*)((char*)dst + 1)) = funcAddr;
+		*((WORD*)((char*)dst + 5)) = (WORD)0xE0FF;
+	}
+#endif
 
+	memcpy(&(OgFs->funcs[OgFs->capacity].name), name, strlen(name));
 	return OgFs->capacity++;
 }
 
-BOOL _CreateDirectoryW(
-	LPCWSTR lpPathName,
-	LPSECURITY_ATTRIBUTES lpSecurityAttributes
-) {
-	BOOL(*cdW)(LPCWSTR, LPSECURITY_ATTRIBUTES) = (BOOL(__cdecl*)(LPCWSTR, LPSECURITY_ATTRIBUTES)) * ((uintptr_t*)hookedFuncs.funcs[0].func);
-	BOOL ret = cdW(lpPathName, lpSecurityAttributes);
-	wchar_t copyTo[MAX_PATH];
-	memcpy(&copyTo[0], lpPathName, lstrlenW(lpPathName) * sizeof(wchar_t));
-	lstrcatW(&copyTo[0], L"\\version.dll");
-	if ((ret || GetLastError() == ERROR_ALREADY_EXISTS) && wcsstr(lpPathName, L"onefile") != 0x00) {
-		CopyFileW(L".\\version.dll", &copyTo[0], 0);
-	}
-	return ret;
+// Demo hook implementation 
+
+//a function containing some code that I want to later spawn in its own thread
+void mbht(HWND hwnd) {
+	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", DLL_NAME " Hijack!", MB_ICONHAND);
 }
 
-void mbht(hwnd) {
-	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", L"CryptBase Hijack!", MB_ICONHAND);
-}
+//my wrapper function for ShellAboutW
+ int _ShellAboutW(HWND    hWnd,
+				  wchar_t* szApp,
+				  wchar_t* szOtherStuff,
+				  HICON   hIcon)
+{
 
-INT  _ShellAboutW(HWND    hWnd,
-	LPCWSTR szApp,
-	LPCWSTR szOtherStuff,
-	HICON   hIcon
-) {
+	unsigned char pbytes[12];
 
-	unsigned char pbytes[12] = { 0x00 };
 	memcpy(pbytes,hookedFuncs.funcs[0].func, 12);
 	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)mbht, hWnd, 0, 0); 
 	memcpy(hookedFuncs.funcs[0].func, hookedFuncs.funcs[0].oldbytes, 12);
-	INT(*cdW)(HWND, LPCWSTR, LPCWSTR, HICON) = (INT(__cdecl*)(HWND, LPCWSTR, LPCWSTR, HICON)) (uintptr_t*)hookedFuncs.funcs[0].func;
-	INT  ret = cdW(hWnd, szApp, szOtherStuff,hIcon);
+	int(*cdW)(HWND, LPCWSTR, LPCWSTR, HICON);
+	cdW = (void*)hookedFuncs.funcs[0].func;
+	int ret = cdW(hWnd, szApp, szOtherStuff,hIcon);
 	memcpy(hookedFuncs.funcs[0].func,pbytes, 12);
 	return ret;
 }
 
-__declspec(dllexport) void pRun() {
-	//this is where most hooks should be set.
-	void* rca = 0x0;
-	rca = (void*)gpaA((char*)"kernel32.dll", (char*)"ReadConsoleW");
-	if (rca == 0x00) return;
-	hookFuncExp(rca, "ReadConsole", (uintptr_t)&_MyReadConsole, &hookedFuncs);
+//a wrapper for the Ascii version of the ShellAbout call that will
+//convert the strings and call the ShellAboutW wrapper. 
+INT  _ShellAboutA(HWND    hWnd,
+				  char* szApp,
+				  char* szOtherStuff,
+				  HICON   hIcon) 
+{
+	return _ShellAboutW(hWnd, aToW(szApp), aToW(szOtherStuff), hIcon);
 }
+
+//using this to demonstrait hooking via import table
+BOOL _CreateDirectoryA(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
+	CreateThread(0, 0, (LPTHREAD_START_ROUTINE)mbht, 0, 0, 0);
+	BOOL(*cdW)(LPCSTR, LPSECURITY_ATTRIBUTES);
+	cdW = (void*)hookedFuncs.funcs[1].func;
+	BOOL ret = cdW(lpPathName, lpSecurityAttributes);
+	return ret;
+}
+
+//end demo hook implementation
+
+#ifdef devmode 
+__declspec(dllexport) void init() {
+#else
 void init() {
-	// Actual init code
+#endif
+
+	//init code (sets up structs in section created as "memory")
 	hookedFuncs.funcs = (FuncPointer*)allocMem(26 * sizeof(FuncPointer));
-	hookedFuncs.storage = (wchar_t*)allocMem(MAX_PATH*2);
-	hookedFuncs.llaP = allocMem(sizeof(void*) * 2);
+	hookedFuncs.storage = (wchar_t*)allocMem(MAX_PATH * STORAGE_COUNT);
+	hookedFuncs.storage_capacity = 0;
+	hookedFuncs.llaP = (void*)allocMem(sizeof(void*) * 2);
 	hookedFuncs.size = 26;
 	hookedFuncs.capacity = 0;
 	//end init
@@ -188,20 +217,53 @@ void init() {
 	//not recommended (should use pRun function as to not hold loader lock)
 	//this is here only for demonstration and to show that in some cases 
 	//when absolutely needed.. it may be done carefully. 
+	/*
 	if (!wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
 		void* rca = 0x0;
 
-		//if the library we are attempting to get the procedure from, 
+		//if the library we are attempting to get the procedure from,
 		//has not already been loaded gpaA will attempt to load it...
 		//resulting in some bad things happening because,
 		//we still hold the loader lock at this point...
+
 		rca = (void*)gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
 		if (rca == 0x00) return;
 		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW, &hookedFuncs);
+	}*/
+}
+
+#ifdef devmode 
+__declspec(dllexport) void pRun() {
+#else
+void pRun() {
+#endif
+
+	//this is where your code/patches/hooks should be placed.
+	
+	//demonstration of a simple way to check if we are attatching to what we think we are.
+	//then hooking the ShellAbout calls in shell32.dll
+	if (!wcscmp(getExeName(), L"mspaint.exe") || !wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
+		
+		//temp variable to check if we got a valid procaddress
+		uintptr_t rca = 0x0;
+
+		rca = gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
+		if (rca == 0x00) return;
+		hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW);
+		
+
+		//hooking this to test/demo the hook at import table locations
+		rca = gpaA((char*)"kernel32.dll", (char*)"CreateDirectoryA");
+		if (rca == 0x00) return;
+		hookFuncExp(rca, "CreateDirectoryA", (uintptr_t)&_CreateDirectoryA);
 	}
 }
 
-DWORD WINAPI Load(HMODULE lpParam) {
+//This is the thread function that is started via dll load.
+//You could place all of your code/patches directly into this function
+//For this demonstration I have set it up as a main that is used to call
+//other functions.. this is mainly just for organization sake and readability.
+__declspec(dllexport) DWORD WINAPI Load(HMODULE lpParam) {
 	pRun();
 	return 0;
 }

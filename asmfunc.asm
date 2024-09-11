@@ -1,10 +1,29 @@
 MEMSEG segment READ WRITE EXECUTE 'STACK'
-	msize dq 2000h
+
+
+target = 0  ;X86
+IFDEF RAX
+	target = 1  ;X64
+endif
+
+ife target
+	msize dd 3000h
+	mcapacity dd 0h
+else
+	msize dq 3000h
 	mcapacity dq 0h
-	array1  byte  8192 DUP(90h)
+endif
+	array1  byte  3000h DUP(00h)
 MEMSEG ends
 
-.code	
+ife target
+.686p
+.XMM
+.model flat, C
+endif
+
+.code
+if target
 	getPeb proc
 		mov rax, gs:[60h]
 		ret
@@ -16,12 +35,12 @@ MEMSEG ends
 		ret
 	getLdrData endp
 
-	getRip proc
-		pop rax
-		push rax
-		ret
-	getRip endp
-	
+;	getRip proc
+;		pop rax
+;		push rax
+;		ret
+;	getRip endp
+
 	sicmp proc
 		xor rax,rax
 		push rbx
@@ -77,6 +96,89 @@ MEMSEG ends
 		fin:
 		ret
 	allocMem endp
+
+else
+	ASSUME FS:NOTHING
+	getPeb proc
+		mov eax, fs:[30h]
+		ret
+	getPeb endp
+
+	getLdrData proc
+		call GetPeb
+		mov eax, dword ptr [eax+0Ch]
+		ret
+	getLdrData endp
+
+	getExeName proc
+		call getLdrData
+		mov eax,[eax+14h]
+		mov eax,[eax+28h]
+		ret
+	getExeName endp
+
+	sicmp proc
+		xor eax,eax
+		push ebx
+		push ecx
+		push edx
+		push esi
+		mov esi, dword ptr[esp+14h]
+		mov edx, dword ptr[esp+18h]
+		mov ecx, dword ptr[esp+1Ch]
+		beg:
+		push ecx
+		movzx ecx, byte ptr[esi]
+		cmp cl,0h
+		je fin
+		sub cl, byte ptr[edx]
+		mov ebx,ecx
+		neg cl
+		cmovl ecx,ebx
+		xor ebx,ebx
+		cmp cl,20h
+		cmove ecx,ebx
+		test ecx,ecx
+		setne al
+		pop ecx
+		jne fin_e
+		lea esi, dword ptr[esi+ecx+1]
+		lea edx, dword ptr[edx+ecx+1]
+		jmp beg
+		fin:
+		xor ebx,ebx
+		dec ebx
+		sub cl,byte ptr[edx]
+		cmovl eax,ebx
+		pop ecx
+		fin_e:
+		pop esi
+		pop edx
+		pop ecx
+		pop ebx
+		ret
+	sicmp endp
+
+
+	allocMem proc
+		mov eax,dword ptr[esp+4h]
+		push ecx
+		add eax,mcapacity
+		cmp eax,msize
+		jg oom
+		mov ecx,OFFSET array1
+		add ecx,mcapacity
+		mov mcapacity,eax
+		mov eax,ecx
+		jmp fin
+		oom:
+		xor eax,eax
+		fin:
+		pop ecx
+		ret
+	allocMem endp
+
+endif
 
 
 end

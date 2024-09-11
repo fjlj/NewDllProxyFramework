@@ -2,9 +2,10 @@
 
 #pragma once
 #include "version.h"
+
 #define cryptbase_prox
 
-#ifdef winmm_prox
+#if defined(winmm_prox)
 
     #ifdef _WIN64
     #define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\System32\\winmm.dll"
@@ -193,11 +194,7 @@
     #pragma comment(linker, "/EXPORT:waveOutUnprepareHeader=" DLLPATH ".waveOutUnprepareHeader,@181")
     #pragma comment(linker, "/EXPORT:waveOutWrite=" DLLPATH ".waveOutWrite,@182")
     #pragma comment(linker, "/EXPORT:__proxy2=" DLLPATH ".#2,@2,NONAME")
-
-#endif
-
-
-#ifdef version_prox
+#elif defined(version_prox)
     
     #ifdef _WIN64
     #define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\System32\\version.dll"
@@ -221,29 +218,26 @@
     #pragma comment(linker, "/EXPORT:VerLanguageNameA=" DLLPATH ".VerLanguageNameA")
     #pragma comment(linker, "/EXPORT:VerLanguageNameW=" DLLPATH ".VerLanguageNameW")
     #pragma comment(linker, "/EXPORT:VerQueryValueA=" DLLPATH ".VerQueryValueA")
-#pragma comment(linker, "/EXPORT:VerQueryValueW=" DLLPATH ".VerQueryValueW")
-#endif
+    #pragma comment(linker, "/EXPORT:VerQueryValueW=" DLLPATH ".VerQueryValueW")
+#elif defined(cryptbase_prox)
 
+    #ifdef _WIN64
+    #define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\System32\\cryptbase.dll"
+    #else
+    #define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\SysWOW64\\cryptbase.dll"
+    #endif // _WIN64
 
-#ifdef cryptbase_prox
-
-#ifdef _WIN64
-#define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\System32\\cryptbase.dll"
-#else
-#define DLLPATH "\\\\.\\GLOBALROOT\\SystemRoot\\SysWOW64\\cryptbase.dll"
-#endif // _WIN64
-
-#pragma comment(linker, "/EXPORT:SystemFunction001=" DLLPATH ".SystemFunction001,@1")
-#pragma comment(linker, "/EXPORT:SystemFunction002=" DLLPATH ".SystemFunction002,@2")
-#pragma comment(linker, "/EXPORT:SystemFunction003=" DLLPATH ".SystemFunction003,@3")
-#pragma comment(linker, "/EXPORT:SystemFunction004=" DLLPATH ".SystemFunction004,@4")
-#pragma comment(linker, "/EXPORT:SystemFunction005=" DLLPATH ".SystemFunction005,@5")
-#pragma comment(linker, "/EXPORT:SystemFunction028=" DLLPATH ".SystemFunction028,@6")
-#pragma comment(linker, "/EXPORT:SystemFunction029=" DLLPATH ".SystemFunction029,@7")
-#pragma comment(linker, "/EXPORT:SystemFunction034=" DLLPATH ".SystemFunction034,@8")
-#pragma comment(linker, "/EXPORT:SystemFunction036=" DLLPATH ".SystemFunction036,@9")
-#pragma comment(linker, "/EXPORT:SystemFunction040=" DLLPATH ".SystemFunction040,@10")
-#pragma comment(linker, "/EXPORT:SystemFunction041=" DLLPATH ".SystemFunction041,@11")
+    #pragma comment(linker, "/EXPORT:SystemFunction001=" DLLPATH ".SystemFunction001,@1")
+    #pragma comment(linker, "/EXPORT:SystemFunction002=" DLLPATH ".SystemFunction002,@2")
+    #pragma comment(linker, "/EXPORT:SystemFunction003=" DLLPATH ".SystemFunction003,@3")
+    #pragma comment(linker, "/EXPORT:SystemFunction004=" DLLPATH ".SystemFunction004,@4")
+    #pragma comment(linker, "/EXPORT:SystemFunction005=" DLLPATH ".SystemFunction005,@5")
+    #pragma comment(linker, "/EXPORT:SystemFunction028=" DLLPATH ".SystemFunction028,@6")
+    #pragma comment(linker, "/EXPORT:SystemFunction029=" DLLPATH ".SystemFunction029,@7")
+    #pragma comment(linker, "/EXPORT:SystemFunction034=" DLLPATH ".SystemFunction034,@8")
+    #pragma comment(linker, "/EXPORT:SystemFunction036=" DLLPATH ".SystemFunction036,@9")
+    #pragma comment(linker, "/EXPORT:SystemFunction040=" DLLPATH ".SystemFunction040,@10")
+    #pragma comment(linker, "/EXPORT:SystemFunction041=" DLLPATH ".SystemFunction041,@11")
 
 #endif
 

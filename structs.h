@@ -22,10 +22,12 @@ typedef struct _MLIST_ENTRY {
     void* reserved[2];
     uintptr_t imageBase;
     uintptr_t entryPoint;
-    UINT64    modSize;
+    ULONG     modSize;
     DWORD     unk1[2]; //possibly mem security characteristics
     wchar_t* modNameWithPath;
-    DWORD     unk2[2];
+    #ifdef _WIN64
+        DWORD     unk2[2];
+    #endif
     wchar_t* modName;
 
 
