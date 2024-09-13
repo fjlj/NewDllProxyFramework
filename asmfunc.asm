@@ -1,5 +1,4 @@
-MEMSEG segment READ WRITE EXECUTE 'STACK'
-
+MEMSEG segment READ WRITE 'STACK'
 
 target = 0  ;X86
 IFDEF RAX
@@ -7,13 +6,15 @@ IFDEF RAX
 endif
 
 ife target
-	msize dd 3000h
+	msize dd 3FF0h
 	mcapacity dd 0h
+	array1  byte  3FF0h DUP(00h)
 else
-	msize dq 3000h
+	msize dq 3FF8h
 	mcapacity dq 0h
+	array1  byte  3FF8h DUP(00h)
 endif
-	array1  byte  3000h DUP(00h)
+
 MEMSEG ends
 
 ife target

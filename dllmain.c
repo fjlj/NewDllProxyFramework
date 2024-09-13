@@ -1,9 +1,7 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 
 #pragma once
-#include "version.h"
-
-#define cryptbase_prox
+#include "proxied_dll.h"
 
 #if defined(winmm_prox)
 

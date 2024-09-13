@@ -182,11 +182,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="version.c" />
+    <ClCompile Include="proxied_dll.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="hooker.h" />
     <ClInclude Include="structs.h" />
-    <ClInclude Include="version.h" />
+    <ClInclude Include="proxied_dll.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="asmfunc.asm" />

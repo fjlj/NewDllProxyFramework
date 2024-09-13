@@ -18,15 +18,18 @@
     <ClCompile Include="dllmain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="version.c">
+    <ClCompile Include="proxied_dll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="version.h">
+    <ClInclude Include="proxied_dll.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="structs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hooker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
