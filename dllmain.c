@@ -2,6 +2,7 @@
 
 #pragma once
 #include "proxied_dll.h"
+#include "hooker.h"
 
 #if defined(winmm_prox)
 

@@ -2,7 +2,7 @@
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 #define FILENAME_MAX 260
-#define STORAGE_COUNT 4
+#define STORAGE_COUNT 8
 
 //#define devmode
 
@@ -16,10 +16,10 @@ typedef struct FuncPointer {
 typedef struct OrgFuncs {
 	FuncPointer* funcs;
 	wchar_t* storage;
-	void* llaP;
-	size_t size;
-	size_t capacity;
 	size_t storage_capacity;
+	void* llaP;
+	int size;
+	int capacity;
 } OrgFuncs;
 
 OrgFuncs hookedFuncs;
@@ -40,8 +40,9 @@ FuncPointer getHookedFunc(char* name);
 //function to create a hook
 //parameters are pretty self explanitory
 //callbackFunc should be a function pointer...
+//returns -1 if function fails
 int hookFunction(char* moduleName, char* procName, void* callbackFunc);
-static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr);
+static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr);
 //restore original bytes at hooked addr
 //save patched bytes 
 void unhook(FuncPointer func);
@@ -84,7 +85,7 @@ __declspec(dllexport) uintptr_t pebLoadLib(char* l, HANDLE _notused, DWORD dwFla
 
 FuncPointer getHookedFunc(char* name) {
 
-	for (size_t i = 0; i <= hookedFuncs.capacity; ++i) {
+	for (int i = 0; i <= hookedFuncs.capacity; ++i) {
 		if (!sicmp(hookedFuncs.funcs[i].name, name, 0))
 			return hookedFuncs.funcs[i];
 	}
@@ -108,7 +109,7 @@ void rehook(FuncPointer func) {
 
 }
 
-static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr) {
+static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr) {
 
 	DWORD lpflOldProtect;
 	VirtualProtect((void*)dst, 0x12, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
@@ -117,26 +118,26 @@ static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void*
 	if (((char*)dst)[0] == 0xff) {
 		OgFs->funcs[OgFs->capacity].addr = (void*)(((uintptr_t*)((char*)dst + 6 + (uintptr_t) * ((uintptr_t*)((char*)dst + 2)))));
 		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
-		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
+		*((uintptr_t*)((char*)dst + 2)) = (uintptr_t)funcAddr;
 		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
 	}
 	else {
 		OgFs->funcs[OgFs->capacity].addr = (void*)dst;
 		*((WORD*)((char*)dst + 0)) = (WORD)0xb848;
-		*((uintptr_t*)((char*)dst + 2)) = funcAddr;
+		*((uintptr_t*)((char*)dst + 2)) = (uintptr_t)funcAddr;
 		*((WORD*)((char*)dst + 10)) = (WORD)0xE0FF;
 	}
 #else
 	if (*((BYTE*)((char*)dst + 0)) == 0xff) {
 		OgFs->funcs[OgFs->capacity].addr = (void*)*((DWORD*)*((DWORD*)((char*)dst + 2)));
 		*((BYTE*)((char*)dst + 0)) = (BYTE)0xb8;
-		*((uintptr_t*)((char*)dst + 1)) = funcAddr;
+		*((uintptr_t*)((char*)dst + 1)) = (uintptr_t)funcAddr;
 		*((WORD*)((char*)dst + 5)) = (WORD)0xE0FF;
 	}
 	else {
 		OgFs->funcs[OgFs->capacity].addr = (void*)dst;
 		*((BYTE*)((char*)dst + 0)) = (BYTE)0xb8;
-		*((uintptr_t*)((char*)dst + 1)) = funcAddr;
+		*((uintptr_t*)((char*)dst + 1)) = (uintptr_t)funcAddr;
 		*((WORD*)((char*)dst + 5)) = (WORD)0xE0FF;
 	}
 #endif
@@ -146,6 +147,7 @@ static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void*
 }
 
 int hookFunction(char* moduleName, char* procName, void* callbackFunc) {
+	if (hookedFuncs.capacity >= hookedFuncs.size) return -1;
 	uintptr_t rca = 0x0;
 	rca = gpaA(moduleName, procName);
 	if (rca == 0x00) return -1;

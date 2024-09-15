@@ -74,7 +74,10 @@ void pRun() {
 	
 	//demonstration of a simple way to check if we are attatching to what we think we are.
 	//then hooking the ShellAbout calls in shell32.dll
-	if (!wcscmp(getExeName(), L"mspaint.exe") || !wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
+	char* exeName = (char*)getExeName();
+	if (!sicmp(exeName, (char*)aToW("mspaint.exe"), 1) || 
+		!sicmp(exeName, (char*)aToW("notepad.exe"), 1) ||
+		!sicmp(exeName, (char*)aToW("calc.exe"), 1)) {
 		
 		//apply hook at proc address, label, function address to be called instead
 		SaWind = hookFunction("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW);

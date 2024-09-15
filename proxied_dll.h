@@ -3,8 +3,8 @@
 #include <windows.h>
 #include "structs.h"
 
-//#define cryptbase_prox
-#define winmm_prox
+#define cryptbase_prox
+//#define winmm_prox
 //#define version_prox
 
 #ifdef cryptbase_prox
