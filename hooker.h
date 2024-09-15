@@ -24,14 +24,33 @@ typedef struct OrgFuncs {
 
 OrgFuncs hookedFuncs;
 
-void init();
+#ifdef devmode
+	__declspec(dllexport) void init()
+#else
+	//memory initialization of hooked functions structure.
+	void init();
+#endif
+//this function uses an area of space for string conversion
+//it will return the converted string pointer
+//it will do this in an arena type method
+//soo dont consider using these pointers for more than immediate use.
 static wchar_t* aToW(CHAR* cbuf);
+//retreive a hooked function via name
 FuncPointer getHookedFunc(char* name);
-static size_t hookFuncExp(uintptr_t dst, const char* name, uintptr_t funcAddr);
+//function to create a hook
+//parameters are pretty self explanitory
+//callbackFunc should be a function pointer...
+int hookFunction(char* moduleName, char* procName, void* callbackFunc);
+static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr);
+//restore original bytes at hooked addr
+//save patched bytes 
 void unhook(FuncPointer func);
+//restore hook with patch bytes at hooked addr
 void rehook(FuncPointer func);
-extern int sicmp(char*, char*, int);
+//use a portion of a custom segment
+//which has read/write permissions to allocate some memory
 extern uintptr_t allocMem(int);
+//some strings used in the PEB loader that wont show up as strings ;)
 static char* getStr(int off);
 
 //function to compare char* to char*(3rd parameter 0) or w_char* to w_char* (3rd parameter 1) 
@@ -73,8 +92,6 @@ FuncPointer getHookedFunc(char* name) {
 	return (FuncPointer){"", { 0x0 }, 0x0};
 }
 
-//restore original bytes at hooked addr
-//save patched bytes 
 void unhook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
@@ -83,7 +100,6 @@ void unhook(FuncPointer func) {
 
 }
 
-//restore hook with patch bytes at hooked addr
 void rehook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
@@ -92,8 +108,7 @@ void rehook(FuncPointer func) {
 
 }
 
-static size_t hookFuncExp(uintptr_t dst, const char* name, uintptr_t funcAddr) {
-	OrgFuncs* OgFs = &hookedFuncs;
+static size_t hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr) {
 
 	DWORD lpflOldProtect;
 	VirtualProtect((void*)dst, 0x12, PAGE_EXECUTE_READWRITE, &lpflOldProtect);
@@ -130,11 +145,17 @@ static size_t hookFuncExp(uintptr_t dst, const char* name, uintptr_t funcAddr) {
 	return OgFs->capacity++;
 }
 
+int hookFunction(char* moduleName, char* procName, void* callbackFunc) {
+	uintptr_t rca = 0x0;
+	rca = gpaA(moduleName, procName);
+	if (rca == 0x00) return -1;
+	//apply hook at proc address, label, function address to be called instead
+	return hookFuncExp(&hookedFuncs, rca, procName, callbackFunc);
+}
+
 #ifdef devmode 
 __declspec(dllexport) void init() {
 #else
-//memory initialization of hooked functions structure.
-//using a portion of a custom segment which has read/write permissions.
 void init() {
 #endif
 	
@@ -149,10 +170,6 @@ void init() {
 
 }
 
-//this function uses an area of space for string conversion
-//it will return the converted string pointer
-//it will do this in an arena type method
-//soo dont consider using these pointers for more than immediate use.
 static wchar_t* aToW(CHAR* cbuf) {
 	if (hookedFuncs.storage_capacity >= (MAX_PATH * (STORAGE_COUNT - 1)))
 		hookedFuncs.storage_capacity = 0;
@@ -217,7 +234,7 @@ uintptr_t gpaA(char* modname, char* wAPIName)
 	if (hModule == (uintptr_t)0) {
 		hModule = llA(modname, 0, 0);
 		if (hModule == (uintptr_t)0) {
-			return (uintptr_t)0;
+			return 0;
 		}
 	}
 

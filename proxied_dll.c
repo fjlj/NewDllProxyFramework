@@ -76,20 +76,11 @@ void pRun() {
 	//then hooking the ShellAbout calls in shell32.dll
 	if (!wcscmp(getExeName(), L"mspaint.exe") || !wcscmp(getExeName(), L"notepad.exe") || !wcscmp(getExeName(), L"calc.exe")) {
 		
-		//temp variable to check if we got a valid procaddress
-		uintptr_t rca = 0x0;
-
-		//get proc address of ShellAboutW (if lib is not loaded it will also be loaded)
-		rca = gpaA((char*)"shell32.dll", (char*)"ShellAboutW");
-		if (rca == 0x00) return;
 		//apply hook at proc address, label, function address to be called instead
-		SaWind = hookFuncExp(rca, "ShellAboutW", (uintptr_t)&_ShellAboutW);
+		SaWind = hookFunction("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW);
 		
-
 		//hooking this to test/demo the hook at import table locations
-		rca = gpaA((char*)"kernel32.dll", (char*)"CreateDirectoryA");
-		if (rca == 0x00) return;
-		hookFuncExp(rca, "CreateDirectoryA", (uintptr_t)&_CreateDirectoryA);
+		hookFunction("kernel32.dll", "CreateDirectoryA", (void*)&_CreateDirectoryA);
 
 		//demo loading another dll via peb information
 		//pebLoadLib("version.dll", 0, 0);
