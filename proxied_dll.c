@@ -9,7 +9,7 @@ int CdAind = -1;
 
 //a function containing some code that I want to later spawn in its own thread
 void mbht(HWND hwnd) {
-	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", DLL_NAME " Hijack!", MB_ICONHAND);
+	MessageBoxW(hwnd, L"HEHE... Gotcha!!!", L"" DLL_NAME " Hijack!", MB_ICONHAND);
 }
 
 //my wrapper function for ShellAboutW
@@ -80,10 +80,10 @@ void pRun() {
 		!sicmp(exeName, (char*)aToW("calc.exe"), 1)) {
 		
 		//apply hook at proc address, label, function address to be called instead
-		SaWind = hookFunction("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW,(DLL_NAME "_ShellAboutW"));
+		SaWind = hookFunctionNamed("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW,(DLL_NAME "_ShellAboutW"));
 		
 		//hooking this to test/demo the hook at import table locations
-		hookFunction("kernel32.dll", "CreateDirectoryA", (void*)&_CreateDirectoryA,0);
+		hookFunction("kernel32.dll", "CreateDirectoryA", (void*)&_CreateDirectoryA);
 
 		//demo loading another dll via peb information
 		//pebLoadLib("version.dll", 0, 0);

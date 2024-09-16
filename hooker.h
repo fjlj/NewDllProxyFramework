@@ -3,6 +3,9 @@
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 #define FILENAME_MAX 260
 #define STORAGE_COUNT 8
+#define hookFunction(modname,procname,cb) hookFunctionR((modname),(procname),(cb),0x00)
+#define hookFunctionNamed(modname,procname,cb,name) hookFunctionR((modname),(procname),(cb),(name))
+
 #include <stdio.h>
 
 typedef struct FuncPointer {
@@ -40,7 +43,7 @@ FuncPointer getHookedFunc(char* name);
 //parameters are pretty self explanitory
 //callbackFunc should be a function pointer...
 //returns -1 if function fails
-int hookFunction(char* moduleName, char* procName, void* callbackFunc, char* name);
+int hookFunctionR(char* moduleName, char* procName, void* callbackFunc, char* name);
 static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr);
 //restore original bytes at hooked addr
 void unhook(FuncPointer func);
@@ -95,7 +98,7 @@ void unhook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
 	memcpy(func.addr, func.oldbytes, 12);
-	FlushInstructionCache(-1, (void*)func.addr, 12);
+	FlushInstructionCache((HANDLE)-1, (void*)func.addr, 12);
 
 }
 
@@ -103,7 +106,7 @@ void rehook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
 	memcpy(func.addr, func.newbytes, 12);
-	FlushInstructionCache(-1, (void*)func.addr, 12);
+	FlushInstructionCache((HANDLE)-1, (void*)func.addr, 12);
 
 }
 
@@ -144,7 +147,7 @@ static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* fu
 	return OgFs->capacity++;
 }
 
-int hookFunction(char* moduleName, char* procName, void* callbackFunc, char* name) {
+int hookFunctionR(char* moduleName, char* procName, void* callbackFunc, char* name) {
 	if (hookedFuncs.capacity >= hookedFuncs.size) return -1;
 	uintptr_t rca = 0x0;
 	rca = gpaA(moduleName, procName);

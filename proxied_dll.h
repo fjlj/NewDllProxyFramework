@@ -3,21 +3,21 @@
 #include <windows.h>
 #include "structs.h"
 
-#define devmode
+//#define devmode
 #define cryptbase_prox
 //#define winmm_prox
 //#define version_prox
 
 #ifdef cryptbase_prox
-	#define DLL_NAME L"CryptBase"
+	#define DLL_NAME "CryptBase"
 #endif
 
 #ifdef winmm_prox
-	#define DLL_NAME L"WinMM"
+	#define DLL_NAME "WinMM"
 #endif
 
 #ifdef version_prox
-	#define DLL_NAME L"Version"
+	#define DLL_NAME "Version"
 #endif
 
 //export of function called by DLLMain
