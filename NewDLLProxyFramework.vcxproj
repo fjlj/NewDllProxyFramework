@@ -190,7 +190,11 @@
     <ClInclude Include="proxied_dll.h" />
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="asmfunc.asm" />
+    <MASM Include="asmfunc.asm">
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</GenerateDebugInformation>
+      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateDebugInformation>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">_WIN64</PreprocessorDefinitions>
+    </MASM>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

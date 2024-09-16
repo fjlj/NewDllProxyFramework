@@ -1,30 +1,31 @@
 MEMSEG segment READ WRITE 'STACK'
 
-target = 0  ;X86
-IFDEF RAX
-	target = 1  ;X64
-endif
-
-ife target
+IFNDEF _WIN64
 	msize dd 3FF0h
 	mcapacity dd 0h
 	array1  byte  3FF0h DUP(00h)
-else
+ELSE
 	msize dq 3FF8h
 	mcapacity dq 0h
 	array1  byte  3FF8h DUP(00h)
-endif
+ENDIF
 
 MEMSEG ends
 
-ife target
+IFNDEF _WIN64
 .686p
 .XMM
 .model flat, C
-endif
+ENDIF
+
+PUBLIC allocMem
+PUBLIC getPeb
+PUBLIC getLdrData
+PUBLIC sicmp
+PUBLIC getExeName
 
 .code
-if target
+IFDEF _WIN64
 	getPeb proc
 		mov rax, gs:[60h]
 		ret
@@ -98,7 +99,7 @@ if target
 		ret
 	allocMem endp
 
-else
+ELSE
 	ASSUME FS:NOTHING
 	getPeb proc
 		mov eax, fs:[30h]
@@ -179,7 +180,7 @@ else
 		ret
 	allocMem endp
 
-endif
+ENDIF
 
 
 end
