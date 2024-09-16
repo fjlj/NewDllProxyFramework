@@ -3,6 +3,7 @@
 #include <windows.h>
 #include "structs.h"
 
+#define devmode
 #define cryptbase_prox
 //#define winmm_prox
 //#define version_prox

@@ -80,10 +80,10 @@ void pRun() {
 		!sicmp(exeName, (char*)aToW("calc.exe"), 1)) {
 		
 		//apply hook at proc address, label, function address to be called instead
-		SaWind = hookFunction("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW);
+		SaWind = hookFunction("shell32.dll", "ShellAboutW", (void*)&_ShellAboutW,(DLL_NAME "_ShellAboutW"));
 		
 		//hooking this to test/demo the hook at import table locations
-		hookFunction("kernel32.dll", "CreateDirectoryA", (void*)&_CreateDirectoryA);
+		hookFunction("kernel32.dll", "CreateDirectoryA", (void*)&_CreateDirectoryA,0);
 
 		//demo loading another dll via peb information
 		//pebLoadLib("version.dll", 0, 0);

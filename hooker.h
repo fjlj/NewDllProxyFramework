@@ -3,8 +3,7 @@
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 #define FILENAME_MAX 260
 #define STORAGE_COUNT 8
-
-//#define devmode
+#include <stdio.h>
 
 typedef struct FuncPointer {
 	char name[FILENAME_MAX + 1];
@@ -25,7 +24,7 @@ typedef struct OrgFuncs {
 OrgFuncs hookedFuncs;
 
 #ifdef devmode
-	__declspec(dllexport) void init()
+	__declspec(dllexport) void init();
 #else
 	//memory initialization of hooked functions structure.
 	void init();
@@ -41,10 +40,9 @@ FuncPointer getHookedFunc(char* name);
 //parameters are pretty self explanitory
 //callbackFunc should be a function pointer...
 //returns -1 if function fails
-int hookFunction(char* moduleName, char* procName, void* callbackFunc);
+int hookFunction(char* moduleName, char* procName, void* callbackFunc, char* name);
 static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* funcAddr);
 //restore original bytes at hooked addr
-//save patched bytes 
 void unhook(FuncPointer func);
 //restore hook with patch bytes at hooked addr
 void rehook(FuncPointer func);
@@ -97,7 +95,7 @@ void unhook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
 	memcpy(func.addr, func.oldbytes, 12);
-	FlushInstructionCache(GetCurrentProcess(), (void*)func.addr, 12);
+	FlushInstructionCache(-1, (void*)func.addr, 12);
 
 }
 
@@ -105,7 +103,7 @@ void rehook(FuncPointer func) {
 
 	//restore the original bytes (to be able to call the original function)
 	memcpy(func.addr, func.newbytes, 12);
-	FlushInstructionCache(GetCurrentProcess(), (void*)func.addr, 12);
+	FlushInstructionCache(-1, (void*)func.addr, 12);
 
 }
 
@@ -146,19 +144,35 @@ static int hookFuncExp(OrgFuncs* OgFs, uintptr_t dst, const char* name, void* fu
 	return OgFs->capacity++;
 }
 
-int hookFunction(char* moduleName, char* procName, void* callbackFunc) {
+int hookFunction(char* moduleName, char* procName, void* callbackFunc, char* name) {
 	if (hookedFuncs.capacity >= hookedFuncs.size) return -1;
 	uintptr_t rca = 0x0;
 	rca = gpaA(moduleName, procName);
+	if (name != 0x00) procName = name;
 	if (rca == 0x00) return -1;
 	//apply hook at proc address, label, function address to be called instead
 	return hookFuncExp(&hookedFuncs, rca, procName, callbackFunc);
 }
 
+void* readEntireFile(char* filename) {
+	FILE* hFile = fopen(filename, "r");
+	if (0 == hFile) return (void*) - 1;
+	fseek(hFile, 0, SEEK_END);
+	size_t fsize = ftell(hFile);
+	fseek(hFile, 0, SEEK_SET);
+	
+	char* wholeFile = (char*)allocMem(fsize + 1);
+	fread(wholeFile, fsize, 1, hFile);
+	fclose(hFile);
+
+	wholeFile[fsize] = 0x00;
+	return wholeFile;
+}
+
 #ifdef devmode 
-__declspec(dllexport) void init() {
+	__declspec(dllexport) void init() {
 #else
-void init() {
+	void init() {
 #endif
 	
 	//init code (sets up structs in portion of bss section created as "memory")

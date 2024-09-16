@@ -1,13 +1,13 @@
 MEMSEG segment READ WRITE 'STACK'
 
 IFNDEF _WIN64
-	msize dd 3FF0h
+	msize dd 7FF8h
 	mcapacity dd 0h
-	array1  byte  3FF0h DUP(00h)
+	array1  byte  7FF8h DUP(00h)
 ELSE
-	msize dq 3FF8h
+	msize dq 7FF0h
 	mcapacity dq 0h
-	array1  byte  3FF8h DUP(00h)
+	array1  byte  7FF0h DUP(00h)
 ENDIF
 
 MEMSEG ends
@@ -84,6 +84,8 @@ IFDEF _WIN64
 	getExeName endp
 
 	allocMem proc
+		add rcx,8h
+		and rcx, qword -10h
 		mov rax,rcx
 		add rax,mcapacity
 		cmp rax,msize
@@ -164,6 +166,8 @@ ELSE
 
 	allocMem proc
 		mov eax,dword ptr[esp+4h]
+		add eax,4h
+		and eax,dword -8h
 		push ecx
 		add eax,mcapacity
 		cmp eax,msize

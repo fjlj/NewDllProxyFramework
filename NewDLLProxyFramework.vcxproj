@@ -113,17 +113,24 @@
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
       <LanguageStandard>stdcpp14</LanguageStandard>
       <CompileAs>CompileAsC</CompileAs>
+      <Optimization>MinSpace</Optimization>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
       <ImageHasSafeExceptionHandlers />
+      <AssemblyDebug>false</AssemblyDebug>
     </Link>
+    <MASM>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -169,16 +176,24 @@
       <LanguageStandard>Default</LanguageStandard>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
       <CompileAs>CompileAsC</CompileAs>
+      <OmitFramePointers>false</OmitFramePointers>
+      <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>
+      </GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <DataExecutionPrevention>false</DataExecutionPrevention>
       <LinkErrorReporting>NoErrorReport</LinkErrorReporting>
+      <AssemblyDebug>false</AssemblyDebug>
     </Link>
+    <MASM>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <PreprocessorDefinitions>_WIN64</PreprocessorDefinitions>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.c" />
