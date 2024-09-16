@@ -50,18 +50,18 @@ void unhook(FuncPointer func);
 void rehook(FuncPointer func);
 //use a portion of a custom segment
 //which has read/write permissions to allocate some memory
-extern uintptr_t allocMem(int);
+extern uintptr_t allocMem(spaceneeded);
 //some strings used in the PEB loader that wont show up as strings ;)
-static char* getStr(int off);
+static char* getStr(int offset);
 
 //function to compare char* to char*(3rd parameter 0) or w_char* to w_char* (3rd parameter 1) 
-extern int sicmp(char*, char*, int);
+extern int sicmp(src, dest, step);
 
 //self explanitory functions that use the PEB
 //to retrieve various information.
-extern PPEB getPeb(void);
-extern PEB_LDR_DATA* getLdrData(void);
-extern wchar_t* getExeName();
+extern PPEB getPeb(_);
+extern PEB_LDR_DATA* getLdrData(_);
+extern wchar_t* getExeName(_);
 
 //GetProcAddress using module name, and procedure name.
 //this will load the library if it is not loaded
